@@ -66,4 +66,4 @@ steps:
     command: 'publish'
     publishWebProjects: false
     projects: '$(appDirectory)/EmailApp.WebUI'
-    zipAfterPublish: true
+    arguments: '--configuration $(buildConfiguration)'
