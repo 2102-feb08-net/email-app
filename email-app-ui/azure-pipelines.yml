@@ -1,0 +1,63 @@
+trigger:
+  branches:
+    include:
+    - main
+  paths:
+    include:
+    - email-app-ui
+
+pool: Default
+
+variables:
+  appDirectory: email-app-ui
+
+steps:
+- task: NodeTool@0
+  displayName: use node 14
+  inputs:
+    versionSpec: '14.x'
+
+- script: npm ci
+  displayName: npm install
+  workingDirectory: $(appDirectory)
+
+- script: npx ng build --prod
+  displayName: ng build
+  workingDirectory: $(appDirectory)
+
+- script: npx ng test
+    --browsers ChromeHeadless
+    --no-watch
+    --code-coverage
+  displayName: ng test
+  workingDirectory: $(appDirectory)
+
+- script: npx ng e2e
+  displayName: ng e2e
+  workingDirectory: $(appDirectory)
+
+- script: npx ng lint
+  displayName: ng lint
+  workingDirectory: $(appDirectory)
+
+- task: SonarCloudPrepare@1
+  displayName: sonar prepare analysis
+  inputs:
+    SonarCloud: 'sonarcloud-escalonn'
+    organization: '2102-feb08-net'
+    scannerMode: 'CLI'
+    configMode: 'manual'
+    cliProjectKey: '2102-feb08-net_email-app-frontend'
+    cliProjectName: 'email-app-frontend'
+    cliSources: '$(appDirectory)/src,$(appDirectory)/e2e'
+    extraProperties: |
+      sonar.coverage.exclusions=**/*.spec.ts,$(appDirectory)/e2e/**/*
+      sonar.typescript.lcov.reportPaths=$(appDirectory)/coverage/$(appDirectory)/lcov.info
+
+- task: SonarCloudAnalyze@1
+  displayName: sonar run analysis
+
+- task: SonarCloudPublish@1
+  displayName: publish sonar quality gate
+  inputs:
+    pollingTimeoutSec: '300'
