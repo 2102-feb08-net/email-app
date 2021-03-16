@@ -28,6 +28,10 @@ stages:
         packageType: 'sdk'
         version: '5.0.x'
 
+    - script: dotnet build --configuration $(buildConfiguration)
+      displayName: dotnet build
+      workingDirectory: $(appDirectory)
+
     - script: dotnet publish --configuration $(buildConfiguration) --output $(System.ArtifactStagingDirectory)/app
       displayName: dotnet publish
       workingDirectory: $(appDirectory)
