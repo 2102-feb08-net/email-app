@@ -20,6 +20,8 @@ stages:
 
   jobs:
   - job: build
+    workspace:
+      clean: all
 
     steps:
     - task: UseDotNet@2
