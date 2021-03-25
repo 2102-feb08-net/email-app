@@ -1,10 +1,30 @@
 ﻿version: '3'
 
+# in docker swarm, a service is a set of replicas of one container
+# (instances of the same iage with the same configuration like environment, networks etc)
+# the service will automatically abstract away the different replicas on he networks its part of
+# including any port mappings to the outside world
 services:
   api:
     build:
       context: EmailApp
     image: nicholasescalona/emailapp:3.0
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 64M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      update_config:
+        parallelism: 1
+        monitor: 10s
+        failure_action: rollback
     ports:
       - '5000:80'
     environment:
@@ -29,7 +49,7 @@ services:
 
 networks:
   db:
-    driver: bridge
+    driver: overlay
 
 volumes:
   db:
