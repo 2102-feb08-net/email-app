@@ -8,6 +8,7 @@ namespace EmailApp.DataAccess.EfModel
     {
         public EmailContext(DbContextOptions<EmailContext> options) : base(options)
         {
+            Database.Migrate();
         }
 
         public DbSet<Message> Messages { get; set; }
@@ -19,7 +20,7 @@ namespace EmailApp.DataAccess.EfModel
             {
                 entity.Property(m => m.OrigDate)
                     .IsRequired()
-                    .HasColumnType("datetimeoffset(0)");
+                    .HasColumnType("timestamptz");
 
                 entity.Property(m => m.IsDeleted)
                     .HasDefaultValue(false);

@@ -1,4 +1,7 @@
+using EmailApp.DataAccess.EfModel;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 namespace EmailApp.WebUI
@@ -7,7 +10,17 @@ namespace EmailApp.WebUI
     {
         public static void Main(string[] args)
         {
-            CreateHostBuilder(args).Build().Run();
+            IHost host = CreateHostBuilder(args).Build();
+
+            using (var scope = host.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<EmailContext>();
+                // bad practice
+                // https://docs.microsoft.com/en-us/ef/core/managing-schemas/migrations/applying
+                db.Database.Migrate();
+            }
+
+            host.Run();
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args)

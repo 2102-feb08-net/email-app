@@ -30,11 +30,10 @@ namespace EmailApp.WebUI
 
         public void ConfigureServices(IServiceCollection services)
         {
-            string connectionString = Configuration.GetConnectionString("EmailDb");
-
+            string connectionString = Configuration.GetConnectionString("PostgresEmailDb");
             services.AddDbContext<EmailContext>(options =>
             {
-                options.UseSqlServer(connectionString);
+                options.UseNpgsql(connectionString);
             });
 
             services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -133,7 +132,7 @@ namespace EmailApp.WebUI
                 // (more unit testable, could use constructor injection)
                 if (context.User.Identity.IsAuthenticated)
                 {
-                    
+
                     var userAddress = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
                     var uow = context.RequestServices.GetRequiredService<IUnitOfWork>();
                     if (await uow.AccountRepository.AddIfNotExistsAsync(userAddress))

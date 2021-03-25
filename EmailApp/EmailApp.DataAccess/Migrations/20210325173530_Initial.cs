@@ -1,5 +1,6 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace EmailApp.DataAccess.Migrations
 {
@@ -11,9 +12,9 @@ namespace EmailApp.DataAccess.Migrations
                 name: "Accounts",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Address = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Address = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -24,15 +25,15 @@ namespace EmailApp.DataAccess.Migrations
                 name: "Messages",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Guid = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OrigDate = table.Column<DateTimeOffset>(type: "datetimeoffset(0)", nullable: false),
-                    FromId = table.Column<int>(type: "int", nullable: false),
-                    ToId = table.Column<int>(type: "int", nullable: true),
-                    Subject = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Body = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Guid = table.Column<Guid>(type: "uuid", nullable: false),
+                    OrigDate = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false),
+                    FromId = table.Column<int>(type: "integer", nullable: false),
+                    ToId = table.Column<int>(type: "integer", nullable: true),
+                    Subject = table.Column<string>(type: "text", nullable: true),
+                    Body = table.Column<string>(type: "text", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {
@@ -54,17 +55,20 @@ namespace EmailApp.DataAccess.Migrations
             migrationBuilder.InsertData(
                 table: "Accounts",
                 columns: new[] { "Id", "Address" },
-                values: new object[] { 1, "nick.escalona@revature.com" });
+                values: new object[,]
+                {
+                    { 1, "nick.escalona@revature.com" },
+                    { 2, "nicholasescalona@outlook.com" }
+                });
 
             migrationBuilder.InsertData(
                 table: "Messages",
                 columns: new[] { "Id", "Body", "FromId", "Guid", "OrigDate", "Subject", "ToId" },
-                values: new object[] { 1, "this is a message to say hello", 1, new Guid("57d462ca-a9ce-4417-b8a4-d9b59907c7a6"), new DateTimeOffset(new DateTime(2021, 3, 20, 22, 37, 10, 0, DateTimeKind.Unspecified), new TimeSpan(0, -6, 0, 0, 0)), "hello", 1 });
-
-            migrationBuilder.InsertData(
-                table: "Messages",
-                columns: new[] { "Id", "Body", "FromId", "Guid", "OrigDate", "Subject", "ToId" },
-                values: new object[] { 2, "this is a reply to hello", 1, new Guid("bd682c41-68db-4c00-9dd2-814b8013e563"), new DateTimeOffset(new DateTime(2021, 3, 20, 22, 40, 1, 0, DateTimeKind.Unspecified), new TimeSpan(0, -6, 0, 0, 0)), "Re: hello", 1 });
+                values: new object[,]
+                {
+                    { 1, "this is a message to say hello", 1, new Guid("57d462ca-a9ce-4417-b8a4-d9b59907c7a6"), new DateTimeOffset(new DateTime(2021, 3, 20, 22, 37, 10, 0, DateTimeKind.Unspecified), new TimeSpan(0, -6, 0, 0, 0)), "hello", 2 },
+                    { 2, "this is a reply to hello", 2, new Guid("bd682c41-68db-4c00-9dd2-814b8013e563"), new DateTimeOffset(new DateTime(2021, 3, 20, 22, 40, 1, 0, DateTimeKind.Unspecified), new TimeSpan(0, -6, 0, 0, 0)), "Re: hello", 1 }
+                });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Accounts_Address",

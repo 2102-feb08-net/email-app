@@ -6,10 +6,17 @@ services:
       context: EmailApp
     image: emailapp:3.0
     ports:
-      - "5000:80"
+      - '5000:80'
     environment:
       - AuthRequired=false
+      - ConnectionStrings__PostgresEmailDb=Host=db;Database=EmailApp;Username=postgres;Password=Password123
+    depends_on:
+    - db
     # file should contain:
     # ConnectionStrings__EmailDb=(connection string)
-    env_file:
-      - email-db-connection.env
+    # env_file:
+    #   - email-db-connection.env
+  db:
+    image: postgres
+    environment:
+      - POSTGRES_PASSWORD=Password123
