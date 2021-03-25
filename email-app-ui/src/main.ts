@@ -8,5 +8,9 @@ if (environment.production) {
   enableProdMode();
 }
 
+
+// angular app startup:
+//  starts in main.ts
+//  bootstrap a root module
 platformBrowserDynamic().bootstrapModule(AppModule)
   .catch(err => console.error(err));

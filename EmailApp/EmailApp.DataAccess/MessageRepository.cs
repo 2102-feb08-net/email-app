@@ -1,9 +1,9 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using EmailApp.Business;
+using EmailApp.Business.Exceptions;
 using EmailApp.DataAccess.EfModel;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,58 +18,108 @@ namespace EmailApp.DataAccess
             _emailContext = emailContext;
         }
 
-        public async Task<IEnumerable<Email>> ListAsync()
+        public async Task<Email> GetByIdAsync(Guid id)
         {
-            return await _emailContext.Messages
+            if (await _emailContext.Messages
                 .Include(m => m.From)
-                .Select(m => new Email
-                {
-                    Id = m.Id,
-                    Body = m.Body,
-                    From = m.From.Address,
-                    Sent = m.Date,
-                    Subject = m.Subject
-                }).ToListAsync();
-        }
-
-        public async Task<Email> GetAsync(int id)
-        {
-            var message = await _emailContext.Messages
-                .Include(m => m.From)
-                .FirstAsync(m => m.Id == id);
+                .Include(m => m.To)
+                .Where(m => !m.IsDeleted)
+                .FirstOrDefaultAsync(m => m.Guid == id) is not Message message)
+            {
+                return null;
+            }
             return new Email
             {
-                Id = message.Id,
-                Body = message.Body,
+                Id = message.Guid,
+                OrigDate = message.OrigDate,
                 From = message.From.Address,
-                Sent = message.Date,
+                To = message.To?.Address,
+                Body = message.Body,
                 Subject = message.Subject
             };
         }
 
-        public void Create(Email email)
+        public async Task<IEnumerable<Email>> ListAsync()
         {
-            Account account = _emailContext.Accounts.First(a => a.Address == email.From);
+            return await _emailContext.Messages
+                .Include(m => m.From)
+                .Include(m => m.To)
+                .Where(m => !m.IsDeleted)
+                .Select(m => new Email
+                {
+                    Id = m.Guid,
+                    OrigDate = m.OrigDate,
+                    From = m.From.Address,
+                    To = m.To != null ? m.To.Address : null,
+                    Subject = m.Subject,
+                    Body = m.Body
+                }).ToListAsync();
+        }
 
-            _emailContext.Messages.Add(new Message
+        public async Task<IEnumerable<Email>> ListByRecipientAsync(string address)
+        {
+            if (await _emailContext.Accounts
+                .Include(a => a.ReceivedMessages.Where(m => !m.IsDeleted))
+                    .ThenInclude(m => m.From)
+                .FirstOrDefaultAsync(a => a.Address == address) is not Account account)
             {
-                Body = email.Body,
-                Subject = email.Subject,
-                Date = email.Sent,
-                From = account
+                return null;
+            }
+            return account.ReceivedMessages.Select(m => new Email
+            {
+                Id = m.Guid,
+                OrigDate = m.OrigDate,
+                From = m.From.Address,
+                To = m.To.Address,
+                Subject = m.Subject,
+                Body = m.Body
             });
         }
 
-        public void Delete(int id)
+        public async Task<Email> AddAsync(Email email)
         {
-            var message = _emailContext.Messages
-                .First(m => m.Id == id);
-            _emailContext.Messages.Remove(message);
+            if (await _emailContext.Accounts
+                .FirstOrDefaultAsync(a => a.Address == email.From) is not Account from)
+            {
+                throw new OriginatorAddressNotFoundException();
+            }
+            Account to = null;
+            if (email.To is not null)
+            {
+                to = await _emailContext.Accounts
+                    .FirstOrDefaultAsync(a => a.Address == email.To);
+                if (to is null)
+                {
+                    throw new DestinationAddressNotFoundException();
+                }
+            }
+
+            if (email.Id == default)
+            {
+                email.Id = Guid.NewGuid();
+            }
+            var entity = new Message
+            {
+                Guid = email.Id,
+                OrigDate = email.OrigDate,
+                From = from,
+                To = to,
+                Subject = email.Subject,
+                Body = email.Body
+            };
+            _emailContext.Messages.Add(entity);
+
+            return email;
         }
 
-        public async Task SaveAsync()
+        public async Task DeleteByIdAsync(Guid id)
         {
-            await _emailContext.SaveChangesAsync();
+            if (await _emailContext.Messages
+                .FirstOrDefaultAsync(m => m.Guid == id) is not Message message)
+            {
+                throw new ArgumentException("message not found", nameof(id));
+            }
+            message.IsDeleted = true;
         }
     }
 }

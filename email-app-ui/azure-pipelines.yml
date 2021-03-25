@@ -6,14 +6,23 @@ trigger:
     include:
     - email-app-ui
 
-pool: Default
+pr:
+  branches:
+    include:
+    - main
+  paths:
+    include:
+    - email-app-ui
+
+pool:
+  vmImage: ubuntu-latest
 
 variables:
   appDirectory: email-app-ui
 
 steps:
 - task: NodeTool@0
-  displayName: use node 14
+  displayName: 'node 14'
   inputs:
     versionSpec: '14.x'
 
@@ -25,20 +34,15 @@ steps:
   displayName: ng build
   workingDirectory: $(appDirectory)
 
-- script: npx ng test
-    --browsers ChromeHeadless
-    --no-watch
-    --code-coverage
-  displayName: ng test
-  workingDirectory: $(appDirectory)
-
-- script: npx ng e2e
-  displayName: ng e2e
-  workingDirectory: $(appDirectory)
-
 - script: npx ng lint
   displayName: ng lint
   workingDirectory: $(appDirectory)
+
+- script: npx ng test --browsers ChromeHeadless --no-watch --code-coverage
+  displayName: ng test
+  workingDirectory: $(appDirectory)
+
+# ng e2e... exercise for the reader
 
 - task: SonarCloudPrepare@1
   displayName: sonar prepare analysis
@@ -47,17 +51,24 @@ steps:
     organization: '2102-feb08-net'
     scannerMode: 'CLI'
     configMode: 'manual'
-    cliProjectKey: '2102-feb08-net_email-app-frontend'
-    cliProjectName: 'email-app-frontend'
-    cliSources: '$(appDirectory)/src,$(appDirectory)/e2e'
-    extraProperties: |
-      sonar.coverage.exclusions=**/*.spec.ts,$(appDirectory)/e2e/**/*
-      sonar.typescript.lcov.reportPaths=$(appDirectory)/coverage/$(appDirectory)/lcov.info
+    cliProjectKey: '2102-feb08-net_trainer-code-email-ui'
+    cliProjectName: 'email-app/email-app-ui'
+    cliSources: '$(appDirectory)/src'
+    extraProperties: 'sonar.javascript.lcov.reportPaths=$(appDirectory)/coverage/email-ui/lcov.info'
 
 - task: SonarCloudAnalyze@1
   displayName: sonar run analysis
 
 - task: SonarCloudPublish@1
-  displayName: publish sonar quality gate
+  displayName: sonar publish analysis result
   inputs:
     pollingTimeoutSec: '300'
+
+- task: AzureRmWebAppDeployment@4
+  displayName: app service deploy
+  inputs:
+    ConnectionType: 'AzureRM'
+    azureSubscription: 'Training(0c61e2ed-4a6a-437f-9a03-1f223527220b)'
+    appType: 'webApp'
+    WebAppName: '2102-escalona-email-ui'
+    packageForLinux: '$(appDirectory)/dist/email-ui'

@@ -7,36 +7,33 @@ trigger:
     - EmailApp
 
 pr:
-- main
+  branches:
+    include:
+    - main
+  paths:
+    include:
+    - EmailApp
 
-pool: Default
+pool:
+  vmImage: ubuntu-latest
 
 stages:
 - stage: build
 
   variables:
-    buildConfiguration: Release
     appDirectory: EmailApp
 
   jobs:
   - job: build
 
     steps:
-    - task: SonarCloudPrepare@1
-      displayName: sonar prepare analysis
+    - task: UseDotNet@2
+      displayName: use dotnet sdk 5
       inputs:
-        SonarCloud: 'sonarcloud-escalonn'
-        organization: '2102-feb08-net'
-        scannerMode: 'MSBuild'
-        projectKey: '2102-feb08-net_trainer-code'
-        projectName: 'EmailApp'
-        extraProperties: 'sonar.cs.opencover.reportsPaths=$(Agent.TempDirectory)/*/coverage.opencover.xml'
+        packageType: 'sdk'
+        version: '5.0.x'
 
-    - script: dotnet build --configuration $(buildConfiguration)
-      displayName: dotnet build
-      workingDirectory: $(appDirectory)
-
-    - script: dotnet publish --configuration $(buildConfiguration) --output $(Build.StagingDirectory)/app
+    - script: dotnet publish --configuration Release --output $(Build.StagingDirectory)/app
       displayName: dotnet publish
       workingDirectory: $(appDirectory)
 
@@ -44,12 +41,87 @@ stages:
       artifact: app
       displayName: publish assemblies
 
-    - task: DotNetCoreCLI@2
-      displayName: dotnet test
+  - job: analyze
+
+    steps:
+    - task: UseDotNet@2
+      displayName: use dotnet sdk 5
       inputs:
-        command: 'test'
-        arguments: '--configuration $(buildConfiguration) --collect "xplat code coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura,opencover'
-        workingDirectory: '$(appDirectory)'
+        packageType: 'sdk'
+        version: '5.0.x'
+
+    - task: UseDotNet@2
+      displayName: add dotnet runtime 2
+      inputs:
+        packageType: 'runtime'
+        version: '2.x'
+
+    - task: SonarCloudPrepare@1
+      displayName: sonar prepare analysis
+      inputs:
+        SonarCloud: 'sonarcloud-escalonn'
+        organization: '2102-feb08-net'
+        scannerMode: 'MSBuild'
+        projectKey: '2102-feb08-net_trainer-code'
+        projectName: 'email-app/EmailApp'
+        extraProperties: 'sonar.cs.opencover.reportsPaths=$(Common.TestResultsDirectory)/**/coverage.opencover.xml'
+
+    - script: dotnet build --configuration Release
+      displayName: dotnet build
+      workingDirectory: $(appDirectory)
+
+    # run tests separately so their results can be tracked separately
+    - script: dotnet test EmailApp.UnitTests
+        --configuration Release
+        --collect:"XPlat Code Coverage"
+        --logger trx
+        --no-build
+        --results-directory $(Common.TestResultsDirectory)/unit
+        --
+        DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura,opencover
+      displayName: dotnet unit test
+      workingDirectory: $(appDirectory)
+
+    - task: PublishTestResults@2
+      displayName: publish unit test results
+      inputs:
+        testResultsFormat: 'VSTest'
+        testResultsFiles: '*.trx'
+        searchFolder: '$(Common.TestResultsDirectory)/unit'
+        testRunTitle: 'unit'
+
+    - script: dotnet test EmailApp.IntegrationTests
+        --configuration Release
+        --collect:"XPlat Code Coverage"
+        --logger trx
+        --no-build
+        --results-directory $(Common.TestResultsDirectory)/int
+        --
+        DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura,opencover
+      displayName: dotnet integration test
+      workingDirectory: $(appDirectory)
+
+    - task: PublishTestResults@2
+      displayName: publish integration test results
+      inputs:
+        testResultsFormat: 'VSTest'
+        testResultsFiles: '*.trx'
+        searchFolder: '$(Common.TestResultsDirectory)/int'
+        testRunTitle: 'integration'
+
+    # PublishCodeCoverageResults task can't handle multiple coverage reports,
+    # so they must be merged
+    - task: reportgenerator@4
+      displayName: merge coverage reports
+      inputs:
+        reports: '$(Common.TestResultsDirectory)/**/coverage.cobertura.xml'
+        targetdir: '$(Common.TestResultsDirectory)/coverage'
+
+    - task: PublishCodeCoverageResults@1
+      displayName: publish code coverage report
+      inputs:
+        codeCoverageTool: 'Cobertura'
+        summaryFileLocation: '$(Common.TestResultsDirectory)/coverage/Cobertura.xml'
 
     - task: SonarCloudAnalyze@1
       displayName: sonar run analysis
@@ -59,11 +131,6 @@ stages:
       inputs:
         pollingTimeoutSec: '300'
 
-    - task: PublishCodeCoverageResults@1
-      displayName: publish code coverage report
-      inputs:
-        codeCoverageTool: 'Cobertura'
-        summaryFileLocation: '$(Agent.TempDirectory)/*/coverage.cobertura.xml'
 
 - stage: deploy
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
@@ -83,7 +150,7 @@ stages:
             displayName: app service deploy
             inputs:
               ConnectionType: 'AzureRM'
-              azureSubscription: 'Training(1)(0c61e2ed-4a6a-437f-9a03-1f223527220b)'
+              azureSubscription: 'Training(0c61e2ed-4a6a-437f-9a03-1f223527220b)'
               appType: 'webApp'
               WebAppName: '2102-escalona-email'
               packageForLinux: '$(Pipeline.Workspace)/app'

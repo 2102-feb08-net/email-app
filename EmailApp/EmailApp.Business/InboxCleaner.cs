@@ -1,31 +1,30 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace EmailApp.Business
 {
     public class InboxCleaner : IInboxCleaner
     {
-        private readonly IMessageRepository _messageRepository;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public InboxCleaner(IMessageRepository messageRepository)
+        public InboxCleaner(IUnitOfWork unitOfWork)
         {
-            _messageRepository = messageRepository;
+            _unitOfWork = unitOfWork;
         }
 
-        public async Task CleanInboxAsync()
+        public async Task CleanInboxAsync(string address)
         {
-            var messages = await _messageRepository.ListAsync();
+            var messages = await _unitOfWork.MessageRepository.ListByRecipientAsync(address);
             IEnumerable<Email> spam = messages
                 .Where(e => e.IsSpam());
 
-            foreach (int id in spam.Select(e => e.Id))
+            foreach (Guid id in spam.Select(e => e.Id))
             {
-                _messageRepository.Delete(id);
+                await _unitOfWork.MessageRepository.DeleteByIdAsync(id);
             }
-            await _messageRepository.SaveAsync();
+            await _unitOfWork.SaveAsync();
         }
     }
 }

@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using EmailApp.Business;
 using Moq;
@@ -13,89 +11,38 @@ namespace EmailApp.UnitTests
         [Fact]
         public void Constructor_Accepts_Null()
         {
-            var cleaner = new InboxCleaner(null);
+            _ = new InboxCleaner(null);
         }
 
         [Fact]
-        public async Task CleanInbox_CleansOneSpam_WithMoq()
+        public async Task CleanInbox_CleansOneSpam()
         {
             // arrange
+            var address = "a@a.com";
             var emails = new[]
             {
-                new Email { Id = 1, From = "kevin@kevin.com" },
-                new Email { Id = 2, From = "a@a.com" }
+                new Email { Id = Guid.NewGuid(), From = "kevin@kevin.com", To = address },
+                new Email { Id = Guid.NewGuid(), From = "b@b.com", To = address }
             };
 
             var mockRepo = new Mock<IMessageRepository>();
-            mockRepo.Setup(r => r.ListAsync()).ReturnsAsync(emails).Verifiable();
-            mockRepo.Setup(r => r.Delete(It.IsAny<int>())).Verifiable();
-            mockRepo.Setup(r => r.SaveAsync()).Verifiable();
+            mockRepo.Setup(r => r.ListByRecipientAsync(address)).ReturnsAsync(emails);
+            mockRepo.Setup(r => r.DeleteByIdAsync(It.IsAny<Guid>()));
 
-            var cleaner = new InboxCleaner(mockRepo.Object);
+            var mockUow = new Mock<IUnitOfWork>();
+            mockUow.Setup(u => u.MessageRepository).Returns(mockRepo.Object);
+
+            var cleaner = new InboxCleaner(mockUow.Object);
 
             // act
-            await cleaner.CleanInboxAsync();
+            await cleaner.CleanInboxAsync(address);
 
             // assert
-            mockRepo.Verify(r => r.ListAsync());
-            mockRepo.Verify(r => r.Delete(emails[0].Id), Times.Once);
-            mockRepo.Verify(r => r.SaveAsync()); // would be nice to verify it was awaited
+            mockRepo.Verify(r => r.ListByRecipientAsync(address), Times.Once);
+            mockRepo.Verify(r => r.DeleteByIdAsync(emails[0].Id), Times.Once); // would be nice to verify it was awaited
             mockRepo.VerifyNoOtherCalls();
-        }
-
-        [Fact]
-        public void CleanInbox_CleansOneSpam()
-        {
-            // arrange
-            var emails = new[]
-            {
-                new Email { Id = 1, From = "kevin@kevin.com" },
-                new Email { Id = 2, From = "a@a.com" }
-            };
-            var repo = new FakeMessageRepository(emails);
-            var cleaner = new InboxCleaner(repo);
-
-            // act
-            cleaner.CleanInboxAsync();
-
-            // assert
-            Assert.Equal(emails[0].Id, repo.DeletedIds.Single());
-            Assert.True(repo.Saved);
-        }
-
-        // Moq is a library that can help replace/simplify this way of testing.
-
-        // "test double", "mock", "fake", "stub"
-        public class FakeMessageRepository : IMessageRepository
-        {
-            private readonly IEnumerable<Email> _emails;
-
-            public HashSet<int> DeletedIds { get; set; } = new HashSet<int>();
-            public bool Saved { get; set; } = false;
-
-            public FakeMessageRepository(IEnumerable<Email> emails)
-            {
-                _emails = emails;
-            }
-
-            public Task<IEnumerable<Email>> ListAsync()
-            {
-                return Task.FromResult(_emails);
-            }
-
-            public void Delete(int id)
-            {
-                DeletedIds.Add(id);
-            }
-
-            public Task SaveAsync()
-            {
-                Saved = true;
-                return Task.CompletedTask;
-            }
-
-            public void Create(Email email) => throw new NotImplementedException();
-            public Task<Email> GetAsync(int id) => throw new NotImplementedException();
+            mockUow.Verify(u => u.SaveAsync());
+            mockUow.VerifyNoOtherCalls();
         }
     }
 }

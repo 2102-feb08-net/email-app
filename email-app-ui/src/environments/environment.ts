@@ -2,8 +2,20 @@
 // `ng build --prod` replaces `environment.ts` with `environment.prod.ts`.
 // The list of file replacements can be found in `angular.json`.
 
+import { OktaConfig } from '@okta/okta-angular';
+
+const oktaConfig: OktaConfig = {
+  clientId: '0oa2mo0y1cehXX75q4x7',
+  issuer: 'https://dev-723797.okta.com/oauth2/default',
+  redirectUri: `${location.origin}/login/callback`,
+  scopes: ['openid', 'profile', 'email', 'groups'],
+  pkce: true,
+};
+
 export const environment = {
-  production: false
+  production: false,
+  emailApiBaseUrl: 'https://localhost:44317',
+  okta: oktaConfig,
 };
 
 /*

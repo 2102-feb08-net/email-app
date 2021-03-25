@@ -1,34 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using EmailApp.Business;
 using EmailApp.DataAccess.EfModel;
 
 namespace EmailApp.DataAccess
 {
-    public class UnitOfWork
+    // relies on unitofwork, repositories and context all being scoped services
+    public class UnitOfWork : IUnitOfWork
     {
         private readonly EmailContext _context;
 
         public IMessageRepository MessageRepository { get; }
-        public IMessageRepository MessageRepository2 { get; }
 
-        public UnitOfWork(EmailContext context)
+        public IAccountRepository AccountRepository { get; }
+
+        public UnitOfWork(EmailContext context, IMessageRepository messageRepository, IAccountRepository accountRepository)
         {
-            MessageRepository = new MessageRepository(context);
-            MessageRepository2 = new MessageRepository(context);
             _context = context;
+            MessageRepository = messageRepository;
+            AccountRepository = accountRepository;
         }
 
         public async Task SaveAsync()
         {
             await _context.SaveChangesAsync();
         }
-
-        // unitOfWork.StoreRepository.Update(store);
-        // unitOfWork.OrderRepository.Create(order);
-        // unitOfWork.Save();
     }
 }

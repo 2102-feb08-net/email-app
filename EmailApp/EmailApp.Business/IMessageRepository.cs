@@ -1,14 +1,15 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace EmailApp.Business
 {
     public interface IMessageRepository
     {
-        void Create(Email email);
-        Task<Email> GetAsync(int id);
+        Task<Email> GetByIdAsync(Guid id);
         Task<IEnumerable<Email>> ListAsync();
-        void Delete(int id);
-        Task SaveAsync();
+        Task<IEnumerable<Email>> ListByRecipientAsync(string address);
+        Task<Email> AddAsync(Email email);
+        Task DeleteByIdAsync(Guid id);
     }
 }
