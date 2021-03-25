@@ -12,6 +12,8 @@ services:
       - ConnectionStrings__PostgresEmailDb=Host=db;Database=EmailApp;Username=postgres;Password=Password123
     depends_on:
     - db
+    networks:
+    - db
     # file should contain:
     # ConnectionStrings__EmailDb=(connection string)
     # env_file:
@@ -20,3 +22,15 @@ services:
     image: postgres
     environment:
       - POSTGRES_PASSWORD=Password123
+    networks:
+    - db
+    volumes:
+    - db:/var/lib/postgresql/data
+
+networks:
+  db:
+    driver: bridge
+
+volumes:
+  db:
+    driver: local

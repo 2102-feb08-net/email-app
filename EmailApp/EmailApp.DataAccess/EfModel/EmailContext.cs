@@ -8,7 +8,6 @@ namespace EmailApp.DataAccess.EfModel
     {
         public EmailContext(DbContextOptions<EmailContext> options) : base(options)
         {
-            Database.Migrate();
         }
 
         public DbSet<Message> Messages { get; set; }
