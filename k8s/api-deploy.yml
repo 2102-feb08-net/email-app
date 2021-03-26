@@ -1,0 +1,60 @@
+﻿apiVersion: apps/v1 # different k8s objects someties have surprisingly different apiversion
+kind: Deployment # what kind of object to create
+metadata: # all k8s have metadata, usually name and labels
+  name: email-api
+  labels: # labels are targetted by selectors of other objects, or just by kubectl -l filtering
+    app: email
+    role: api
+spec: # every object has a specification
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  minReadySeconds: 5
+  selector: # this should match the pod template's labels
+    matchLabels:
+      app: email
+      role: api
+  template: # the template for the pods to be created by the replicaset
+    metadata:
+      labels:
+        app: email
+        role: api
+    spec: # the spec of the template
+      containers: # the list of containers in the pod
+      - name: api
+        env: # environment variables
+        - name: AuthRequired
+          value: 'false'
+        - name: ConnectionStrings__PostgresEmailDb
+          value: Host=localhost;Database=my_db;Username=postgres;Password=Password123
+        image: nicholasescalona/emailapp:3.0
+        imagePullPolicy: Always # whether to check for a new image if the pod needs to be recreated
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: '64Mi'
+            cpu: '250m'
+          limits:
+            memory: '512Mi'
+            cpu: '1000m'
+        livenessProbe:
+          httpGet:
+            port: 80
+            path: /health
+          periodSeconds: 30
+
+# http://(cluster-ip)
+# http://(node-ip):(node-port)
+   # any pod that matches the service's selector
+
+# deployment for api
+
+# nodeport service for api
+# deployment for db (ideally, with persistent volume)
+# clusterip service for db
+
+# deployment for ng ui
+# nodeport service for ng ui

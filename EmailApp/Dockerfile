@@ -21,3 +21,5 @@ WORKDIR /app
 COPY --from=build /app/dist ./
 
 CMD [ "dotnet", "EmailApp.WebUI.dll" ]
+
+HEALTHCHECK CMD curl --fail http://localhost/health || exit

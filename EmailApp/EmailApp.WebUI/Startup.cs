@@ -46,6 +46,9 @@ namespace EmailApp.WebUI
 
             services.AddHttpClient<TypiCodeService>();
 
+            services.AddHealthChecks()
+                .AddDbContextCheck<EmailContext>();
+
             // most of these strings would be better read from configuration,
             // since we might want them to vary from one environment to another
             // like the connection string can
@@ -145,6 +148,7 @@ namespace EmailApp.WebUI
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapHealthChecks("/health");
                 endpoints.MapControllers();
             });
         }
