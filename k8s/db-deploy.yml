@@ -26,12 +26,21 @@ spec:
       - name: db
         image: postgres:10.4
         # imagePullPolicy: "IfNotPresent"
+        env:
+        - name: POSTGRES_PASSWORD
+          value: Password123
         ports:
-         - containerPort: 5432
+        - containerPort: 5432
         volumeMounts:
-         - mountPath: /var/lib/postgresql/data
-           name: postgresdb
+        - mountPath: /var/lib/postgresql/data
+          name: postgresdb
+        resources:
+          requests: {}
+          limits: 
+            cpu:
+            memory:
+            
       volumes:
-        - name: postgresdb
-          persistentVolumeClaim:
-            claimName: postgres-pv-claim
+      - name: postgresdb
+        persistentVolumeClaim:
+          claimName: postgres-pv-claim

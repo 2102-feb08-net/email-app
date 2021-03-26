@@ -28,7 +28,7 @@ spec: # every object has a specification
         - name: AuthRequired
           value: 'false'
         - name: ConnectionStrings__PostgresEmailDb
-          value: Host=localhost;Database=my_db;Username=postgres;Password=Password123
+          value: Host=10.102.237.253;Database=my_db;Username=postgres;Password=Password123
         image: nicholasescalona/emailapp:3.0
         imagePullPolicy: Always # whether to check for a new image if the pod needs to be recreated
         ports:
