@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: email-db
+  labels:
+    app: postgres
+    role: db
+spec:
+  replicas: 1
+  strategy: 
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  minReadySeconds: 5
+  selector:
+    matchLabels:
+      app: postgres
+      role: db
+  template:
+    metadata:
+      labels:
+        app: postgres
+        role: db
+    spec:
+      containers:
+      - name: db
+        image: postgres:10.4
+        # imagePullPolicy: "IfNotPresent"
+        ports:
+         - containerPort: 5432
+        volumeMounts:
+         - mountPath: /var/lib/postgresql/data
+           name: postgresdb
+      volumes:
+        - name: postgresdb
+          persistentVolumeClaim:
+            claimName: postgres-pv-claim
