@@ -21,7 +21,7 @@ namespace EmailApp.UnitTests
             var address = "a@a.com";
             var emails = new[]
             {
-                new Email { Id = Guid.NewGuid(), From = "kevin@kevin.com", To = address },
+                new Email { Id = Guid.NewGuid(), From = "richard@revature.com", To = address },
                 new Email { Id = Guid.NewGuid(), From = "b@b.com", To = address }
             };
 
