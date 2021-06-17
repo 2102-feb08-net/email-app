@@ -17,7 +17,7 @@ namespace EmailApp.Business
 
         public bool IsSpam()
         {
-            return From == "kevin@kevin.com";
+            return From == "richard@revature.com";
         }
     }
 }
