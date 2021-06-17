@@ -148,6 +148,7 @@ stages:
 
           - task: AzureRmWebAppDeployment@4
             displayName: app service deploy
+            enabled: 'false'
             inputs:
               ConnectionType: 'AzureRM'
               azureSubscription: 'Training(0c61e2ed-4a6a-437f-9a03-1f223527220b)'
